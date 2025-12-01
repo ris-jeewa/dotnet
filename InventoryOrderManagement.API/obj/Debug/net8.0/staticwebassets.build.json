@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "seuUQzvNBap1NY6aIK41vZDMd/Te2VDQg+JJ1FZQiTM=",
+  "Source": "InventoryOrderManagement.API",
+  "BasePath": "_content/InventoryOrderManagement.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
