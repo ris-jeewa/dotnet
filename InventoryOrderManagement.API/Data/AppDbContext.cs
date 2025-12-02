@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using InventoryOrderManagement.API.Models;
+
+namespace InventoryOrderManagement.API.Data;
 
 public class AppDbContext : DbContext
 {
