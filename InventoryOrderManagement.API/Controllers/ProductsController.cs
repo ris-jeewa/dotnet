@@ -21,14 +21,20 @@ public class ProductsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
     {
-        return await _context.Products.ToListAsync();
+        return await _context.Products
+            .Include(p => p.Category)
+            .Include(p => p.Supplier)
+            .ToListAsync();
     }
 
     // GET: api/products/5
     [HttpGet("{id}")]
     public async Task<ActionResult<Product>> GetProduct(int id)
     {
-        var product = await _context.Products.FindAsync(id);
+        var product = await _context.Products
+            .Include(p => p.Category)
+            .Include(p => p.Supplier)
+            .FirstOrDefaultAsync(p => p.ProductId == id);
 
         if (product == null)
         {
@@ -42,16 +48,59 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Product>> CreateProduct(CreateProductDto dto)
     {
+        // Check if SKU already exists
+        var existingProduct = await _context.Products
+            .FirstOrDefaultAsync(p => p.SKU == dto.SKU);
+        
+        if (existingProduct != null)
+        {
+            return BadRequest(new { message = $"Product with SKU '{dto.SKU}' already exists." });
+        }
+
+        // Validate CategoryId if provided
+        if (dto.CategoryId.HasValue)
+        {
+            var categoryExists = await _context.Categories
+                .AnyAsync(c => c.CategoryId == dto.CategoryId.Value);
+            
+            if (!categoryExists)
+            {
+                return BadRequest(new { message = $"Category with ID {dto.CategoryId} does not exist." });
+            }
+        }
+
+        // Validate SupplierId if provided
+        if (dto.SupplierId.HasValue)
+        {
+            var supplierExists = await _context.Suppliers
+                .AnyAsync(s => s.SupplierId == dto.SupplierId.Value);
+            
+            if (!supplierExists)
+            {
+                return BadRequest(new { message = $"Supplier with ID {dto.SupplierId} does not exist." });
+            }
+        }
+
         var product = new Product
         {
             Name = dto.Name,
-            Quantity = dto.Quantity
+            SKU = dto.SKU,
+            Description = dto.Description,
+            CategoryId = dto.CategoryId,
+            SupplierId = dto.SupplierId,
+            UnitPrice = dto.UnitPrice,
+            IsActive = dto.IsActive
         };
 
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+        // Load category for response
+        await _context.Entry(product)
+            .Reference(p => p.Category)
+            .LoadAsync();
+
+        return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId }, product);
     }
 
     // PUT: api/products/5
@@ -65,8 +114,49 @@ public class ProductsController : ControllerBase
             return NotFound(new { message = $"Product with ID {id} not found." });
         }
 
+        // Check if SKU is being changed and if new SKU already exists
+        if (product.SKU != dto.SKU)
+        {
+            var existingProduct = await _context.Products
+                .FirstOrDefaultAsync(p => p.SKU == dto.SKU && p.ProductId != id);
+            
+            if (existingProduct != null)
+            {
+                return BadRequest(new { message = $"Product with SKU '{dto.SKU}' already exists." });
+            }
+        }
+
+        // Validate CategoryId if provided
+        if (dto.CategoryId.HasValue)
+        {
+            var categoryExists = await _context.Categories
+                .AnyAsync(c => c.CategoryId == dto.CategoryId.Value);
+            
+            if (!categoryExists)
+            {
+                return BadRequest(new { message = $"Category with ID {dto.CategoryId} does not exist." });
+            }
+        }
+
+        // Validate SupplierId if provided
+        if (dto.SupplierId.HasValue)
+        {
+            var supplierExists = await _context.Suppliers
+                .AnyAsync(s => s.SupplierId == dto.SupplierId.Value);
+            
+            if (!supplierExists)
+            {
+                return BadRequest(new { message = $"Supplier with ID {dto.SupplierId} does not exist." });
+            }
+        }
+
         product.Name = dto.Name;
-        product.Quantity = dto.Quantity;
+        product.SKU = dto.SKU;
+        product.Description = dto.Description;
+        product.CategoryId = dto.CategoryId;
+        product.SupplierId = dto.SupplierId;
+        product.UnitPrice = dto.UnitPrice;
+        product.IsActive = dto.IsActive;
 
         await _context.SaveChangesAsync();
 
