@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\InventoryOrderManagement.API.props" />
-</Project>
