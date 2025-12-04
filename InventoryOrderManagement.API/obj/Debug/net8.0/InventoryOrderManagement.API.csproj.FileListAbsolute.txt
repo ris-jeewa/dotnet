@@ -108,3 +108,4 @@ E:\projects\dotnet\InventoryOrderManagement.API\bin\Debug\net8.0\Npgsql.dll
 E:\projects\dotnet\InventoryOrderManagement.API\bin\Debug\net8.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
 E:\projects\dotnet\InventoryOrderManagement.API\obj\Debug\net8.0\staticwebassets.build.endpoints.json
 E:\projects\dotnet\InventoryOrderManagement.API\obj\Debug\net8.0\staticwebassets\msbuild.InventoryOrderManagement.API.Microsoft.AspNetCore.StaticWebAssetEndpoints.props
+E:\projects\dotnet\InventoryOrderManagement.API\bin\Debug\net8.0\test.json
