@@ -1,6 +1,7 @@
 using InventoryOrderManagement.API.Data;
 using InventoryOrderManagement.API.Models;
 using InventoryOrderManagement.API.Models.DTOs;
+using InventoryOrderManagement.API.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,10 +12,12 @@ namespace InventoryOrderManagement.API.Controllers;
 public class InventoriesController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly InventoryService _inventoryService;
 
-    public InventoriesController(AppDbContext context)
+    public InventoriesController(AppDbContext context, InventoryService inventoryService)
     {
         _context = context;
+        _inventoryService = inventoryService;
     }
 
     // GET: api/inventories
@@ -117,6 +120,16 @@ public class InventoriesController : ControllerBase
             return BadRequest(new { message = $"Inventory already exists for Product ID {dto.ProductId} in Warehouse ID {dto.WarehouseId}. Use PUT to update." });
         }
 
+        // Validate quantity - prevent negative stock
+        try
+        {
+            await _inventoryService.ValidateInventoryQuantityAsync(0, dto.Quantity);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+
         var inventory = new Inventory
         {
             ProductId = dto.ProductId,
@@ -197,6 +210,16 @@ public class InventoriesController : ControllerBase
         if (existingInventory != null)
         {
             return BadRequest(new { message = $"Another inventory already exists for Product ID {dto.ProductId} in Warehouse ID {dto.WarehouseId}." });
+        }
+
+        // Validate quantity - prevent negative stock
+        try
+        {
+            await _inventoryService.ValidateInventoryQuantityAsync(id, dto.Quantity);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
 
         inventory.ProductId = dto.ProductId;
