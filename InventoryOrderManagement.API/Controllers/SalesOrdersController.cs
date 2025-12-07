@@ -1,6 +1,7 @@
 using InventoryOrderManagement.API.Data;
 using InventoryOrderManagement.API.Models;
 using InventoryOrderManagement.API.Models.DTOs;
+using InventoryOrderManagement.API.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,10 +12,12 @@ namespace InventoryOrderManagement.API.Controllers;
 public class SalesOrdersController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly InventoryService _inventoryService;
 
-    public SalesOrdersController(AppDbContext context)
+    public SalesOrdersController(AppDbContext context, InventoryService inventoryService)
     {
         _context = context;
+        _inventoryService = inventoryService;
     }
 
     // GET: api/salesorders
@@ -104,6 +107,19 @@ public class SalesOrdersController : ControllerBase
         if (missingProducts.Any())
         {
             return BadRequest(new { message = $"Products with IDs {string.Join(", ", missingProducts)} do not exist." });
+        }
+
+        // Validate stock availability for all items - prevent negative stock
+        foreach (var item in dto.Items)
+        {
+            try
+            {
+                await _inventoryService.ValidateStockAvailabilityAsync(item.ProductId, item.Quantity);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = $"Product ID {item.ProductId}: {ex.Message}" });
+            }
         }
 
         // Calculate total amount
@@ -223,6 +239,16 @@ public class SalesOrdersController : ControllerBase
         if (!productExists)
         {
             return BadRequest(new { message = $"Product with ID {dto.ProductId} does not exist." });
+        }
+
+        // Validate stock availability - prevent negative stock
+        try
+        {
+            await _inventoryService.ValidateStockAvailabilityAsync(dto.ProductId, dto.Quantity);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
 
         var item = new SalesOrderItem
