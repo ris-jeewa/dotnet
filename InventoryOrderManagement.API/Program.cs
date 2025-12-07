@@ -1,4 +1,5 @@
 using InventoryOrderManagement.API.Data;
+using InventoryOrderManagement.API.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
@@ -13,6 +14,9 @@ builder.Services.AddSwaggerGen();
 // Add PostgreSQL
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Add custom services
+builder.Services.AddScoped<InventoryService>();
 
 // Add controllers with JSON options to handle reference cycles
 builder.Services.AddControllers()
