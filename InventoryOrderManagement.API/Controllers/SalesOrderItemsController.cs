@@ -1,6 +1,7 @@
 using InventoryOrderManagement.API.Data;
 using InventoryOrderManagement.API.Models;
 using InventoryOrderManagement.API.Models.DTOs;
+using InventoryOrderManagement.API.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,10 +12,12 @@ namespace InventoryOrderManagement.API.Controllers;
 public class SalesOrderItemsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly InventoryService _inventoryService;
 
-    public SalesOrderItemsController(AppDbContext context)
+    public SalesOrderItemsController(AppDbContext context, InventoryService inventoryService)
     {
         _context = context;
+        _inventoryService = inventoryService;
     }
 
     // GET: api/salesorderitems
@@ -94,6 +97,16 @@ public class SalesOrderItemsController : ControllerBase
             return BadRequest(new { message = $"Product with ID {dto.ProductId} does not exist." });
         }
 
+        // Validate stock availability - prevent negative stock
+        try
+        {
+            await _inventoryService.ValidateStockAvailabilityAsync(dto.ProductId, dto.Quantity);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+
         var item = new SalesOrderItem
         {
             SalesOrderId = dto.SalesOrderId,
@@ -142,6 +155,22 @@ public class SalesOrderItemsController : ControllerBase
         if (!productExists)
         {
             return BadRequest(new { message = $"Product with ID {dto.ProductId} does not exist." });
+        }
+
+        // Calculate the net change in quantity
+        var quantityChange = dto.Quantity - item.Quantity;
+        
+        // If increasing quantity, validate stock availability
+        if (quantityChange > 0)
+        {
+            try
+            {
+                await _inventoryService.ValidateStockAvailabilityAsync(dto.ProductId, quantityChange);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         // Store old values for total recalculation
